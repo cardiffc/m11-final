@@ -1,12 +1,16 @@
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
 
 public class SiteMapBuilder extends RecursiveTask<HashSet> {
-    private String root;
+    private static String root;
 
     public SiteMapBuilder(String root) {
         this.root = root;
@@ -16,38 +20,36 @@ public class SiteMapBuilder extends RecursiveTask<HashSet> {
     protected HashSet compute() {
         Document node = null;
         try {
-            node = Jsoup.connect(root).get();
-        } catch (IOException e) {
+                Thread.sleep(1000);
+                node = Jsoup.connect(root).maxBodySize(0).get();
+
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
-        HashSet<SiteMapBuilder> taskList = new HashSet<>();
-        Elements preChilds = node.select("a");
+        List<SiteMapBuilder> taskList = new ArrayList<>();
+        Elements preChilds = node.select("a[href]");
         HashSet<String> childs = new HashSet<>();
-        preChilds.forEach(pc -> {
-            String child = pc.attr("abs:href");
-            if (child.contains(root)) {
-                childs.add(child);
-            }
-        });
-        HashSet<String> urls = new HashSet<>();
-        urls.add("ROOT: " + root);
-        childs.forEach(child -> {
-            if (!child.equals("") && !child.equals(root)) {
-                    urls.add("\tchild: " + child);
-            }
-        });
+        HashSet<String> testChilds = new HashSet<>();
+        for (Element el : preChilds) {
+            String child = el.absUrl("href");
+            if (checkURL(child) && testChilds.add(child))
+            childs.add(child);
+        }
         for (String child : childs) {
-                if (!child.equals("")) {
-                    SiteMapBuilder task = new SiteMapBuilder(child);
-                    task.fork();
-                    taskList.add(task);
-                }
+            System.out.println(child);
+            SiteMapBuilder task = new SiteMapBuilder(child);
+            task.fork();
+            taskList.add(task);
         }
-        for (SiteMapBuilder task : taskList)
-        {
-            task.join();
+        System.out.println(taskList.size());
+        taskList.forEach(ForkJoinTask::join);
+        HashSet<String> test = new HashSet<>();
+            return test;
         }
-        return urls;
+
+
+    private static boolean checkURL(String url) {
+        return url.startsWith(Main.ROOT) && url.endsWith("/") && !url.equals(root) && !url.equals(Main.ROOT);
     }
 
 }
