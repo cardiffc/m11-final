@@ -15,7 +15,7 @@ public class SiteMapBuilder extends RecursiveTask<HashSet> {
 
     public SiteMapBuilder(String root) {
         this.root = root;
-         //  System.out.println(root);
+        System.out.println(root);
 
     }
     private String getUrl() {
@@ -30,36 +30,27 @@ public class SiteMapBuilder extends RecursiveTask<HashSet> {
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
-        List<SiteMapBuilder> taskList = new ArrayList<>();
+
         HashSet<String> childs = new HashSet<>();
         Elements toSelect = node.select("a");
         toSelect.forEach(element -> {
-            childs.add(element.attr("abs:href"));
-        });
-
-        for (String child : childs) {
-            if (checkURL(child))
-            {
-                SiteMapBuilder newTask = new SiteMapBuilder(child);
-                newTask.fork();
-                System.out.println(newTask.getUrl());
-                taskList.add(newTask);
-
-
-                //  System.out.println(newTask.getUrl());
+            String child = element.attr("abs:href");
+            if (checkURL(child)) {
+                childs.add(child);
             }
-
+        });
+        List<SiteMapBuilder> taskList = new ArrayList<>();
+        for (String child : childs) {
+            SiteMapBuilder newTask = new SiteMapBuilder(child);
+            newTask.fork();
+            taskList.add(newTask);
         }
-        taskList.forEach(ForkJoinTask::join);
-
-
+        taskList.forEach(t -> System.out.println(t.getUrl()));
         HashSet<String> test = new HashSet<>();
+
         return test;
     }
-
-
     private static boolean checkURL(String url) {
         return url.startsWith(Main.ROOT) && url.endsWith("/") && !url.equals(root) && !url.equals(Main.ROOT);
     }
-
 }

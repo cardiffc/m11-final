@@ -7,7 +7,8 @@ public class Main {
     private static String source = ROOT;
 
     public static void main(String[] args) throws IOException {
-        HashSet<String> map =  new ForkJoinPool().invoke(new SiteMapBuilder(ROOT));
-      //  map.forEach(System.out::println);
+        HashSet<String> map = new ForkJoinPool().invoke(new SiteMapBuilder(ROOT));
+        System.out.println(map.size());
+
     }
 }
