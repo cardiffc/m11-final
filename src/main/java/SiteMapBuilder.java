@@ -8,44 +8,54 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
+import java.util.zip.CheckedInputStream;
 
 public class SiteMapBuilder extends RecursiveTask<HashSet> {
     private static String root;
 
     public SiteMapBuilder(String root) {
         this.root = root;
-    }
+         //  System.out.println(root);
 
+    }
+    private String getUrl() {
+        return this.root;
+    }
     @Override
     protected HashSet compute() {
         Document node = null;
         try {
-                Thread.sleep(1000);
-                node = Jsoup.connect(root).maxBodySize(0).get();
-
+            Thread.sleep(1000);
+            node = Jsoup.connect(root).maxBodySize(0).get();
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
         List<SiteMapBuilder> taskList = new ArrayList<>();
-        Elements preChilds = node.select("a[href]");
         HashSet<String> childs = new HashSet<>();
-        HashSet<String> testChilds = new HashSet<>();
-        for (Element el : preChilds) {
-            String child = el.absUrl("href");
-            if (checkURL(child) && testChilds.add(child))
-            childs.add(child);
-        }
+        Elements toSelect = node.select("a");
+        toSelect.forEach(element -> {
+            childs.add(element.attr("abs:href"));
+        });
+
         for (String child : childs) {
-            System.out.println(child);
-            SiteMapBuilder task = new SiteMapBuilder(child);
-            task.fork();
-            taskList.add(task);
+            if (checkURL(child))
+            {
+                SiteMapBuilder newTask = new SiteMapBuilder(child);
+                newTask.fork();
+                System.out.println(newTask.getUrl());
+                taskList.add(newTask);
+
+
+                //  System.out.println(newTask.getUrl());
+            }
+
         }
-        System.out.println(taskList.size());
         taskList.forEach(ForkJoinTask::join);
+
+
         HashSet<String> test = new HashSet<>();
-            return test;
-        }
+        return test;
+    }
 
 
     private static boolean checkURL(String url) {
